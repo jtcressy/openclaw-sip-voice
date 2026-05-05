@@ -1,0 +1,37 @@
+# syntax=docker/dockerfile:1.23.0@sha256:2780b5c3bab67f1f76c781860de469442999ed1a0d7992a5efdf2cffc0e3d769
+
+FROM --platform=$BUILDPLATFORM node:25-bookworm-slim AS deps
+
+WORKDIR /work
+
+COPY plugin/package.json ./source-package.json
+RUN node -e 'const fs = require("node:fs"); const pkg = JSON.parse(fs.readFileSync("source-package.json", "utf8")); fs.writeFileSync("package.json", `${JSON.stringify({ name: pkg.name, version: pkg.version, type: pkg.type, dependencies: pkg.dependencies ?? {} }, null, 2)}\n`);'
+RUN --mount=type=cache,target=/root/.npm \
+    npm install --omit=dev --ignore-scripts --no-audit --no-fund
+
+FROM node:25-bookworm-slim AS payload
+
+WORKDIR /image-root
+
+COPY plugin/package.json ./package.json
+COPY plugin/openclaw.plugin.json ./openclaw.plugin.json
+COPY plugin/tsconfig.json ./tsconfig.json
+COPY plugin/index.ts ./index.ts
+COPY plugin/src/ ./src/
+COPY --from=deps /work/node_modules/ ./node_modules/
+
+RUN test -f package.json \
+    && test -f openclaw.plugin.json \
+    && test -f tsconfig.json \
+    && test -f index.ts \
+    && test -d src \
+    && test -d node_modules/typebox \
+    && node -e 'const fs = require("node:fs"); const pkg = JSON.parse(fs.readFileSync("package.json", "utf8")); const manifest = JSON.parse(fs.readFileSync("openclaw.plugin.json", "utf8")); if (pkg.name !== "@openclaw/sip-voice") throw new Error("unexpected package name"); if (pkg.openclaw?.extensions?.[0] !== "./index.ts") throw new Error("package extension must path-load ./index.ts"); if (manifest.id !== "sip-voice") throw new Error("unexpected plugin id");'
+
+FROM scratch AS artifact
+
+LABEL org.opencontainers.image.title="OpenClaw SIP Voice plugin"
+LABEL org.opencontainers.image.description="Filesystem artifact image for Kubernetes ImageVolume; this is not a service image."
+LABEL org.opencontainers.image.source="https://github.com/jtcressy/openclaw-sip-voice"
+
+COPY --from=payload /image-root/ /

@@ -1,0 +1,12 @@
+{
+  "protocolVersion": "1.0",
+  "type": "error",
+  "sentAt": "2026-05-05T17:00:10.000Z",
+  "fatal": true,
+  "error": {
+    "code": "unsupported_protocol_version",
+    "message": "Unsupported protocol version.",
+    "retryable": false,
+    "expectedProtocolVersions": ["1.0"]
+  }
+}

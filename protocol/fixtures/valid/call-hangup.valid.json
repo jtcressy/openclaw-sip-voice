@@ -1,0 +1,8 @@
+{
+  "protocolVersion": "1.0",
+  "type": "call.hangup",
+  "sentAt": "2026-05-05T17:00:14.000Z",
+  "commandId": "cmd_hangup_000001",
+  "callId": "call_in_000001",
+  "reason": "user_request"
+}

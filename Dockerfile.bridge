@@ -1,0 +1,29 @@
+# syntax=docker/dockerfile:1.23.0@sha256:2780b5c3bab67f1f76c781860de469442999ed1a0d7992a5efdf2cffc0e3d769
+
+FROM --platform=$BUILDPLATFORM golang:1.26-bookworm AS build
+
+WORKDIR /src/bridge
+
+ARG TARGETOS=linux
+ARG TARGETARCH=amd64
+
+COPY bridge/go.mod bridge/go.sum ./
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
+
+COPY bridge/ ./
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
+    go build -trimpath -ldflags="-s -w" -o /out/openclaw-sip-voice-bridge ./cmd/openclaw-sip-voice-bridge
+
+FROM scratch AS runtime
+
+LABEL org.opencontainers.image.title="OpenClaw SIP Voice bridge"
+LABEL org.opencontainers.image.description="OpenClaw SIP Voice bridge service image."
+LABEL org.opencontainers.image.source="https://github.com/jtcressy/openclaw-sip-voice"
+
+COPY --from=build /out/openclaw-sip-voice-bridge /openclaw-sip-voice-bridge
+
+USER 65532:65532
+EXPOSE 5060/udp 9077/tcp 9078/tcp
+ENTRYPOINT ["/openclaw-sip-voice-bridge"]

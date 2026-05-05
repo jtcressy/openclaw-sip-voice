@@ -1,0 +1,7 @@
+{
+  "protocolVersion": "1.0",
+  "type": "call.answer",
+  "sentAt": "2026-05-05T17:00:12.000Z",
+  "commandId": "cmd_answer_000001",
+  "callId": "call_in_000001"
+}

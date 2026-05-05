@@ -1,0 +1,17 @@
+{
+  "protocolVersion": "1.0",
+  "type": "call.dial",
+  "sentAt": "2026-05-05T17:00:13.000Z",
+  "commandId": "cmd_dial_000001",
+  "remote": {
+    "handle": "+15557654321",
+    "displayName": "Support Line"
+  },
+  "audio": {
+    "format": "g711_ulaw",
+    "sampleRateHz": 8000,
+    "channels": 1,
+    "frameDurationMs": 20,
+    "payloadEncoding": "base64"
+  }
+}

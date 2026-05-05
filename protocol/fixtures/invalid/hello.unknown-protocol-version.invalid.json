@@ -1,0 +1,25 @@
+{
+  "protocolVersion": "9.9",
+  "type": "hello",
+  "sentAt": "2026-05-05T17:01:04.000Z",
+  "bridgeId": "bridge_loopback_poc",
+  "bridgeVersion": "0.1.0",
+  "transport": {
+    "kind": "websocket",
+    "defaultUrl": "ws://127.0.0.1:9077"
+  },
+  "supportedProtocolVersions": ["9.9"],
+  "audio": {
+    "format": "g711_ulaw",
+    "sampleRateHz": 8000,
+    "channels": 1,
+    "frameDurationMs": 20,
+    "payloadEncoding": "base64"
+  },
+  "capabilities": {
+    "inboundCalls": true,
+    "outboundCalls": true,
+    "bargeIn": false,
+    "clearQueuedAudio": false
+  }
+}

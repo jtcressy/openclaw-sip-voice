@@ -1,0 +1,12 @@
+{
+  "protocolVersion": "1.0",
+  "type": "status",
+  "sentAt": "2026-05-05T17:00:02.000Z",
+  "bridgeState": "degraded",
+  "registration": {
+    "state": "unregistered",
+    "reasonCode": "not_configured",
+    "message": "No voice line is registered."
+  },
+  "activeCalls": []
+}

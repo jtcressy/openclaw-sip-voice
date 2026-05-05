@@ -1,0 +1,136 @@
+{
+  "id": "sip-voice",
+  "name": "SIP Voice",
+  "description": "Bridge SIP calls into OpenClaw realtime voice through a local SIP voice bridge.",
+  "enabledByDefault": true,
+  "commandAliases": [{ "name": "sipvoice" }],
+  "activation": {
+    "onStartup": true,
+    "onCommands": ["sipvoice"],
+    "onCapabilities": ["tool"]
+  },
+  "contracts": {
+    "tools": ["sip_voice"]
+  },
+  "uiHints": {
+    "enabled": {
+      "label": "Enabled"
+    },
+    "bridge.url": {
+      "label": "Bridge URL",
+      "help": "Local SIP voice bridge websocket URL. The plugin does not store SIP credentials."
+    },
+    "maxConcurrentCalls": {
+      "label": "Max Concurrent Calls"
+    },
+    "audio.format": {
+      "label": "Audio Format",
+      "advanced": true
+    },
+    "realtime.provider": {
+      "label": "Realtime Provider",
+      "advanced": true
+    },
+    "realtime.model": {
+      "label": "Realtime Model",
+      "advanced": true
+    },
+    "realtime.toolPolicy": {
+      "label": "Realtime Tool Policy",
+      "help": "Controls realtime assistant tool access.",
+      "advanced": true
+    },
+    "realtime.providers": {
+      "label": "Realtime Provider Config",
+      "advanced": true
+    },
+    "realtime.instructions": {
+      "label": "Realtime Instructions",
+      "advanced": true
+    },
+    "realtime.introMessage": {
+      "label": "Realtime Intro Message",
+      "advanced": true
+    }
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "enabled": {
+        "type": "boolean",
+        "default": true
+      },
+      "bridge": {
+        "type": "object",
+        "additionalProperties": false,
+        "default": {
+          "url": "ws://127.0.0.1:9077"
+        },
+        "properties": {
+          "url": {
+            "type": "string",
+            "default": "ws://127.0.0.1:9077"
+          }
+        }
+      },
+      "maxConcurrentCalls": {
+        "type": "integer",
+        "minimum": 1,
+        "default": 1
+      },
+      "audio": {
+        "type": "object",
+        "additionalProperties": false,
+        "default": {
+          "format": "g711-ulaw-8khz"
+        },
+        "properties": {
+          "format": {
+            "type": "string",
+            "enum": ["g711-ulaw-8khz"],
+            "default": "g711-ulaw-8khz"
+          }
+        }
+      },
+      "realtime": {
+        "type": "object",
+        "additionalProperties": false,
+        "default": {
+          "provider": "google",
+          "model": "gemini-3.1-flash-live-preview",
+          "toolPolicy": "safe-read-only",
+          "providers": {}
+        },
+        "properties": {
+          "provider": {
+            "type": "string",
+            "default": "google"
+          },
+          "model": {
+            "type": "string",
+            "default": "gemini-3.1-flash-live-preview"
+          },
+          "toolPolicy": {
+            "type": "string",
+            "default": "safe-read-only"
+          },
+          "providers": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "default": {}
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "introMessage": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "protocolVersion": "1.0",
+  "type": "audio.in",
+  "sentAt": "2026-05-05T17:01:02.000Z",
+  "callId": "call_in_000001",
+  "sequence": 45,
+  "timestampMs": 900,
+  "audio": {
+    "format": "g711_ulaw",
+    "sampleRateHz": 8000,
+    "channels": 1,
+    "frameDurationMs": 20,
+    "payloadEncoding": "base64",
+    "payload": "not-base64"
+  }
+}

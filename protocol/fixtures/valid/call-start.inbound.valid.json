@@ -1,0 +1,19 @@
+{
+  "protocolVersion": "1.0",
+  "type": "call.start",
+  "sentAt": "2026-05-05T17:00:03.000Z",
+  "callId": "call_in_000001",
+  "direction": "inbound",
+  "state": "ringing",
+  "remote": {
+    "handle": "+15551234567",
+    "displayName": "Front Desk"
+  },
+  "audio": {
+    "format": "g711_ulaw",
+    "sampleRateHz": 8000,
+    "channels": 1,
+    "frameDurationMs": 20,
+    "payloadEncoding": "base64"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "protocolVersion": "1.0",
+  "type": "status",
+  "sentAt": "2026-05-05T17:00:01.000Z",
+  "bridgeState": "ready",
+  "registration": {
+    "state": "registered",
+    "label": "default-line"
+  },
+  "activeCalls": []
+}

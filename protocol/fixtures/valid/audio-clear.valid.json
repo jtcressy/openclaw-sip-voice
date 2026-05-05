@@ -1,0 +1,9 @@
+{
+  "protocolVersion": "1.0",
+  "type": "audio.clear",
+  "sentAt": "2026-05-05T17:00:07.000Z",
+  "commandId": "cmd_clear_000001",
+  "callId": "call_in_000001",
+  "scope": "queued",
+  "reason": "barge_in"
+}

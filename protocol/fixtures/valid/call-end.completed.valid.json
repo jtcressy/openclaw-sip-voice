@@ -1,0 +1,8 @@
+{
+  "protocolVersion": "1.0",
+  "type": "call.end",
+  "sentAt": "2026-05-05T17:00:08.000Z",
+  "callId": "call_in_000001",
+  "outcome": "completed",
+  "durationMs": 12340
+}

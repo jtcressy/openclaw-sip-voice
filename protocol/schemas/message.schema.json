@@ -1,0 +1,500 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openclaw.local/sip-voice/protocol/message.schema.json",
+  "title": "OpenClaw SIP Voice Local Bridge Protocol Message",
+  "oneOf": [
+    { "$ref": "#/$defs/HelloEvent" },
+    { "$ref": "#/$defs/StatusEvent" },
+    { "$ref": "#/$defs/CallStartEvent" },
+    { "$ref": "#/$defs/AudioInEvent" },
+    { "$ref": "#/$defs/CallEndEvent" },
+    { "$ref": "#/$defs/ErrorEvent" },
+    { "$ref": "#/$defs/StatusGetCommand" },
+    { "$ref": "#/$defs/CallAnswerCommand" },
+    { "$ref": "#/$defs/CallDialCommand" },
+    { "$ref": "#/$defs/AudioOutCommand" },
+    { "$ref": "#/$defs/AudioClearCommand" },
+    { "$ref": "#/$defs/CallHangupCommand" }
+  ],
+  "$defs": {
+    "ProtocolVersion": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "Timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "CallId": {
+      "type": "string",
+      "pattern": "^call_[A-Za-z0-9._:-]{6,96}$"
+    },
+    "CommandId": {
+      "type": "string",
+      "pattern": "^cmd_[A-Za-z0-9._:-]{6,96}$"
+    },
+    "BridgeId": {
+      "type": "string",
+      "pattern": "^bridge_[A-Za-z0-9._:-]{3,96}$"
+    },
+    "ReasonCode": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{1,63}$"
+    },
+    "RemoteHandle": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[+A-Za-z0-9][A-Za-z0-9 ._()+-]{0,63}$"
+    },
+    "DisplayName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "Base64Payload": {
+      "type": "string",
+      "minLength": 216,
+      "maxLength": 216,
+      "pattern": "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$"
+    },
+    "AudioFormat": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "format",
+        "sampleRateHz",
+        "channels",
+        "frameDurationMs",
+        "payloadEncoding"
+      ],
+      "properties": {
+        "format": { "const": "g711_ulaw" },
+        "sampleRateHz": { "const": 8000 },
+        "channels": { "const": 1 },
+        "frameDurationMs": { "const": 20 },
+        "payloadEncoding": { "const": "base64" }
+      }
+    },
+    "AudioFrame": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "format",
+        "sampleRateHz",
+        "channels",
+        "frameDurationMs",
+        "payloadEncoding",
+        "payload"
+      ],
+      "properties": {
+        "format": { "const": "g711_ulaw" },
+        "sampleRateHz": { "const": 8000 },
+        "channels": { "const": 1 },
+        "frameDurationMs": { "const": 20 },
+        "payloadEncoding": { "const": "base64" },
+        "payload": { "$ref": "#/$defs/Base64Payload" }
+      }
+    },
+    "RemoteParty": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["handle"],
+      "properties": {
+        "handle": { "$ref": "#/$defs/RemoteHandle" },
+        "displayName": { "$ref": "#/$defs/DisplayName" }
+      }
+    },
+    "CallSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["callId", "direction", "state"],
+      "properties": {
+        "callId": { "$ref": "#/$defs/CallId" },
+        "direction": { "enum": ["inbound", "outbound"] },
+        "state": { "enum": ["ringing", "dialing", "active", "ending"] }
+      }
+    },
+    "HelloEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocolVersion",
+        "type",
+        "sentAt",
+        "bridgeId",
+        "bridgeVersion",
+        "transport",
+        "supportedProtocolVersions",
+        "audio",
+        "capabilities"
+      ],
+      "properties": {
+        "protocolVersion": { "$ref": "#/$defs/ProtocolVersion" },
+        "type": { "const": "hello" },
+        "sentAt": { "$ref": "#/$defs/Timestamp" },
+        "bridgeId": { "$ref": "#/$defs/BridgeId" },
+        "bridgeVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "transport": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "defaultUrl"],
+          "properties": {
+            "kind": { "const": "websocket" },
+            "defaultUrl": { "const": "ws://127.0.0.1:9077" }
+          }
+        },
+        "supportedProtocolVersions": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "items": { "$ref": "#/$defs/ProtocolVersion" }
+        },
+        "audio": { "$ref": "#/$defs/AudioFormat" },
+        "capabilities": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "inboundCalls",
+            "outboundCalls",
+            "bargeIn",
+            "clearQueuedAudio"
+          ],
+          "properties": {
+            "inboundCalls": { "type": "boolean" },
+            "outboundCalls": { "type": "boolean" },
+            "bargeIn": { "type": "boolean" },
+            "clearQueuedAudio": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "StatusEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocolVersion",
+        "type",
+        "sentAt",
+        "bridgeState",
+        "registration",
+        "activeCalls"
+      ],
+      "properties": {
+        "protocolVersion": { "$ref": "#/$defs/ProtocolVersion" },
+        "type": { "const": "status" },
+        "sentAt": { "$ref": "#/$defs/Timestamp" },
+        "bridgeState": {
+          "enum": ["starting", "ready", "degraded", "offline"]
+        },
+        "registration": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["state"],
+          "properties": {
+            "state": {
+              "enum": ["registered", "unregistered", "registering", "error"]
+            },
+            "label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            },
+            "reasonCode": { "$ref": "#/$defs/ReasonCode" },
+            "message": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            }
+          }
+        },
+        "activeCalls": {
+          "type": "array",
+          "maxItems": 16,
+          "items": { "$ref": "#/$defs/CallSummary" }
+        }
+      }
+    },
+    "CallStartEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocolVersion",
+        "type",
+        "sentAt",
+        "callId",
+        "direction",
+        "state",
+        "remote",
+        "audio"
+      ],
+      "properties": {
+        "protocolVersion": { "$ref": "#/$defs/ProtocolVersion" },
+        "type": { "const": "call.start" },
+        "sentAt": { "$ref": "#/$defs/Timestamp" },
+        "callId": { "$ref": "#/$defs/CallId" },
+        "direction": { "enum": ["inbound", "outbound"] },
+        "state": { "enum": ["ringing", "dialing", "active"] },
+        "remote": { "$ref": "#/$defs/RemoteParty" },
+        "audio": { "$ref": "#/$defs/AudioFormat" },
+        "requestedByCommandId": { "$ref": "#/$defs/CommandId" }
+      }
+    },
+    "AudioInEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocolVersion",
+        "type",
+        "sentAt",
+        "callId",
+        "sequence",
+        "timestampMs",
+        "audio"
+      ],
+      "properties": {
+        "protocolVersion": { "$ref": "#/$defs/ProtocolVersion" },
+        "type": { "const": "audio.in" },
+        "sentAt": { "$ref": "#/$defs/Timestamp" },
+        "callId": { "$ref": "#/$defs/CallId" },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "timestampMs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "audio": { "$ref": "#/$defs/AudioFrame" }
+      }
+    },
+    "CallEndEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocolVersion",
+        "type",
+        "sentAt",
+        "callId",
+        "outcome"
+      ],
+      "properties": {
+        "protocolVersion": { "$ref": "#/$defs/ProtocolVersion" },
+        "type": { "const": "call.end" },
+        "sentAt": { "$ref": "#/$defs/Timestamp" },
+        "callId": { "$ref": "#/$defs/CallId" },
+        "outcome": {
+          "enum": ["completed", "error", "missed", "rejected", "canceled"]
+        },
+        "durationMs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reason": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["code"],
+          "properties": {
+            "code": { "$ref": "#/$defs/ReasonCode" },
+            "message": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "outcome": { "const": "error" }
+            },
+            "required": ["outcome"]
+          },
+          "then": {
+            "required": ["reason"]
+          }
+        }
+      ]
+    },
+    "ErrorEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocolVersion", "type", "sentAt", "fatal", "error"],
+      "properties": {
+        "protocolVersion": { "$ref": "#/$defs/ProtocolVersion" },
+        "type": { "const": "error" },
+        "sentAt": { "$ref": "#/$defs/Timestamp" },
+        "fatal": { "type": "boolean" },
+        "error": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["code", "message", "retryable"],
+          "properties": {
+            "code": {
+              "enum": [
+                "unsupported_protocol_version",
+                "validation_failed",
+                "bridge_unavailable",
+                "call_not_found",
+                "call_rejected",
+                "audio_underrun",
+                "internal_error"
+              ]
+            },
+            "message": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "retryable": { "type": "boolean" },
+            "commandId": { "$ref": "#/$defs/CommandId" },
+            "callId": { "$ref": "#/$defs/CallId" },
+            "expectedProtocolVersions": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 1,
+              "items": { "$ref": "#/$defs/ProtocolVersion" }
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "code": { "const": "unsupported_protocol_version" }
+                },
+                "required": ["code"]
+              },
+              "then": {
+                "required": ["expectedProtocolVersions"]
+              }
+            }
+          ]
+        }
+      }
+    },
+    "StatusGetCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocolVersion", "type", "sentAt", "commandId"],
+      "properties": {
+        "protocolVersion": { "$ref": "#/$defs/ProtocolVersion" },
+        "type": { "const": "status.get" },
+        "sentAt": { "$ref": "#/$defs/Timestamp" },
+        "commandId": { "$ref": "#/$defs/CommandId" }
+      }
+    },
+    "CallAnswerCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocolVersion",
+        "type",
+        "sentAt",
+        "commandId",
+        "callId"
+      ],
+      "properties": {
+        "protocolVersion": { "$ref": "#/$defs/ProtocolVersion" },
+        "type": { "const": "call.answer" },
+        "sentAt": { "$ref": "#/$defs/Timestamp" },
+        "commandId": { "$ref": "#/$defs/CommandId" },
+        "callId": { "$ref": "#/$defs/CallId" }
+      }
+    },
+    "CallDialCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocolVersion",
+        "type",
+        "sentAt",
+        "commandId",
+        "remote",
+        "audio"
+      ],
+      "properties": {
+        "protocolVersion": { "$ref": "#/$defs/ProtocolVersion" },
+        "type": { "const": "call.dial" },
+        "sentAt": { "$ref": "#/$defs/Timestamp" },
+        "commandId": { "$ref": "#/$defs/CommandId" },
+        "remote": { "$ref": "#/$defs/RemoteParty" },
+        "audio": { "$ref": "#/$defs/AudioFormat" }
+      }
+    },
+    "AudioOutCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocolVersion",
+        "type",
+        "sentAt",
+        "commandId",
+        "callId",
+        "sequence",
+        "audio"
+      ],
+      "properties": {
+        "protocolVersion": { "$ref": "#/$defs/ProtocolVersion" },
+        "type": { "const": "audio.out" },
+        "sentAt": { "$ref": "#/$defs/Timestamp" },
+        "commandId": { "$ref": "#/$defs/CommandId" },
+        "callId": { "$ref": "#/$defs/CallId" },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "audio": { "$ref": "#/$defs/AudioFrame" }
+      }
+    },
+    "AudioClearCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocolVersion",
+        "type",
+        "sentAt",
+        "commandId",
+        "callId",
+        "scope"
+      ],
+      "properties": {
+        "protocolVersion": { "$ref": "#/$defs/ProtocolVersion" },
+        "type": { "const": "audio.clear" },
+        "sentAt": { "$ref": "#/$defs/Timestamp" },
+        "commandId": { "$ref": "#/$defs/CommandId" },
+        "callId": { "$ref": "#/$defs/CallId" },
+        "scope": { "const": "queued" },
+        "reason": {
+          "enum": ["barge_in", "user_request", "call_ending"]
+        }
+      }
+    },
+    "CallHangupCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocolVersion",
+        "type",
+        "sentAt",
+        "commandId",
+        "callId"
+      ],
+      "properties": {
+        "protocolVersion": { "$ref": "#/$defs/ProtocolVersion" },
+        "type": { "const": "call.hangup" },
+        "sentAt": { "$ref": "#/$defs/Timestamp" },
+        "commandId": { "$ref": "#/$defs/CommandId" },
+        "callId": { "$ref": "#/$defs/CallId" },
+        "reason": {
+          "enum": ["user_request", "completed", "failed"]
+        }
+      }
+    }
+  }
+}

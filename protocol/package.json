@@ -1,0 +1,9 @@
+{
+  "name": "@openclaw/sip-voice-protocol",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "validate": "node validate.mjs",
+    "test": "node --test test/*.test.mjs"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "protocolVersion": "1.0",
+  "type": "call.end",
+  "sentAt": "2026-05-05T17:00:09.000Z",
+  "callId": "call_out_000001",
+  "outcome": "error",
+  "durationMs": 880,
+  "reason": {
+    "code": "media_stream_error",
+    "message": "Media stream ended unexpectedly."
+  }
+}

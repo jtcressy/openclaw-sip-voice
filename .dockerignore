@@ -1,0 +1,16 @@
+.git
+.github
+.cache
+.env
+.env.*
+!.env.example
+**/.DS_Store
+**/__pycache__/
+**/*.pyc
+**/*.log
+**/node_modules/
+**/dist/
+**/build/
+**/coverage/
+bridge/openclaw-sip-voice-bridge
+tmp/

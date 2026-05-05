@@ -1,0 +1,20 @@
+{
+  "protocolVersion": "1.0",
+  "type": "call.start",
+  "sentAt": "2026-05-05T17:00:04.000Z",
+  "callId": "call_out_000001",
+  "direction": "outbound",
+  "state": "dialing",
+  "remote": {
+    "handle": "+15557654321",
+    "displayName": "Support Line"
+  },
+  "audio": {
+    "format": "g711_ulaw",
+    "sampleRateHz": 8000,
+    "channels": 1,
+    "frameDurationMs": 20,
+    "payloadEncoding": "base64"
+  },
+  "requestedByCommandId": "cmd_dial_000001"
+}

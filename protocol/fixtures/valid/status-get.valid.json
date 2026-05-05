@@ -1,0 +1,6 @@
+{
+  "protocolVersion": "1.0",
+  "type": "status.get",
+  "sentAt": "2026-05-05T17:00:11.000Z",
+  "commandId": "cmd_status_000001"
+}
