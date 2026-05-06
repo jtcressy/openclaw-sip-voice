@@ -332,6 +332,17 @@ function bridgeError(overrides = {}) {
   };
 }
 
+async function waitForCondition(predicate, timeoutMs = 500) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (predicate()) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+  assert.equal(predicate(), true);
+}
+
 test("inbound call lifecycle answers, bridges audio, clears output, and closes", async () => {
   const { bridge, realtime, params } = makeParams();
   const runtime = await createSipVoiceRuntime(params);
@@ -397,9 +408,11 @@ test("audio sink frames variable realtime chunks into canonical bridge frames", 
   sink.sendAudio(Buffer.concat([first, second, partialA]));
 
   let commands = bridge.commandsOf("audio.out");
-  assert.equal(commands.length, 2);
+  assert.equal(commands.length, 1);
   assert.equal(commands[0].sequence, 0);
   assert.equal(commands[0].audio.payload, first.toString("base64"));
+  await waitForCondition(() => bridge.commandsOf("audio.out").length === 2);
+  commands = bridge.commandsOf("audio.out");
   assert.equal(commands[1].sequence, 1);
   assert.equal(commands[1].audio.payload, second.toString("base64"));
 
