@@ -140,11 +140,13 @@ export type SipVoiceRuntimeBridgeClient = {
 };
 
 export type SipVoiceRuntimeRealtimeSession = {
+  connect?: () => unknown;
   sendAudio?: (audio: Buffer) => unknown;
   speak?: (message: string) => unknown;
   sendText?: (message: string) => unknown;
   close?: () => unknown;
   bridge?: {
+    connect?: () => unknown;
     sendAudio?: (audio: Buffer) => unknown;
     speak?: (message: string) => unknown;
     sendText?: (message: string) => unknown;
@@ -569,6 +571,7 @@ export async function createSipVoiceRuntime(
           model: params.config.realtime.model,
         },
       });
+      connectRealtimeSession(call);
       return true;
     } catch (error) {
       recordError(error, { callId: call.callId, code: "session_start_failed" });
@@ -580,6 +583,50 @@ export async function createSipVoiceRuntime(
       call.state = "ended";
       calls.delete(call.callId);
       return false;
+    }
+  };
+
+  const connectRealtimeSession = (call: ManagedCall): void => {
+    const session = call.session;
+    const connect = session?.connect ?? session?.bridge?.connect;
+    if (!session || !connect) {
+      recordError(new Error("Realtime session does not expose connect()"), {
+        callId: call.callId,
+        code: "realtime_contract_missing",
+      });
+      return;
+    }
+
+    const target = session.connect ? session : session.bridge;
+    const handleConnected = (): void => {
+      if (calls.get(call.callId) === call && call.state !== "ended") {
+        recordEvent("realtime.session.ready", { callId: call.callId });
+      }
+    };
+    const handleConnectionFailure = (error: unknown): void => {
+      recordError(error, { callId: call.callId, code: "session_connect_failed" });
+      if (calls.get(call.callId) !== call || call.state === "ended") {
+        return;
+      }
+      try {
+        bridge.sendCallHangup({ callId: call.callId, reason: "failed" });
+      } catch (hangupError) {
+        recordError(hangupError, { callId: call.callId, code: "hangup_failed" });
+      }
+      call.state = "ending";
+      closeSession(call, "session_connect_failed");
+    };
+
+    try {
+      const result = connect.call(target);
+      recordEvent("realtime.session.connect", { callId: call.callId });
+      if (isPromiseLike(result)) {
+        result.then(handleConnected, handleConnectionFailure);
+        return;
+      }
+      handleConnected();
+    } catch (error) {
+      handleConnectionFailure(error);
     }
   };
 

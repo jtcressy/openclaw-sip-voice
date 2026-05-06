@@ -37,6 +37,7 @@ export function resolveConfiguredRealtimeVoiceProvider(params) {
 
 export function createRealtimeVoiceBridgeSession() {
   return {
+    connect() {},
     sendAudio() {},
     speak() {},
     close() {},
@@ -195,11 +196,20 @@ class FakeBridgeClient {
 }
 
 class FakeRealtimeSession {
-  constructor(params) {
+  constructor(params, options = {}) {
     this.params = params;
+    this.connectError = options.connectError;
+    this.connectCalls = 0;
     this.sentAudio = [];
     this.spoken = [];
     this.closeCalls = 0;
+  }
+
+  connect() {
+    this.connectCalls += 1;
+    if (this.connectError) {
+      return Promise.reject(this.connectError);
+    }
   }
 
   sendAudio(audio) {
@@ -215,12 +225,12 @@ class FakeRealtimeSession {
   }
 }
 
-function createRealtimeFactory() {
+function createRealtimeFactory(options = {}) {
   const sessions = [];
   return {
     sessions,
     create(params) {
-      const session = new FakeRealtimeSession(params);
+      const session = new FakeRealtimeSession(params, options);
       sessions.push(session);
       return session;
     },
@@ -333,6 +343,7 @@ test("inbound call lifecycle answers, bridges audio, clears output, and closes",
 
   assert.equal(bridge.commandsOf("call.answer").length, 1);
   assert.equal(realtime.sessions.length, 1);
+  assert.equal(realtime.sessions[0].connectCalls, 1);
   assert.equal(runtime.getStatus().activeCalls, 1);
 
   const inboundPayload = Buffer.alloc(160, 7);
@@ -354,6 +365,23 @@ test("inbound call lifecycle answers, bridges audio, clears output, and closes",
   assert.equal(runtime.getStatus().activeCalls, 0);
   assert.equal(runtime.tail().events.at(-1).type, "call.end");
   assert.deepEqual(runtime.tail(0), { events: [], errors: [] });
+});
+
+test("inbound call connect failure closes realtime session and hangs up", async () => {
+  const realtime = createRealtimeFactory({ connectError: new Error("connect failed") });
+  const { bridge, params } = makeParams({ realtime });
+  const runtime = await createSipVoiceRuntime(params);
+
+  bridge.emit(callStart());
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.equal(realtime.sessions.length, 1);
+  assert.equal(realtime.sessions[0].connectCalls, 1);
+  assert.equal(realtime.sessions[0].closeCalls, 1);
+  assert.equal(bridge.commandsOf("call.hangup").length, 1);
+  assert.equal(bridge.commandsOf("call.hangup")[0].callId, "call_abcdef");
+  assert.equal(runtime.getStatus().calls[0].state, "ending");
+  assert.equal(runtime.getStatus().recentErrors.at(-1).code, "session_connect_failed");
 });
 
 test("audio sink frames variable realtime chunks into canonical bridge frames", async () => {
