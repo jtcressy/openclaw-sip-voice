@@ -98,6 +98,36 @@ func TestSessionWritesOutboundFramesWithPacing(t *testing.T) {
 	}
 }
 
+func TestSessionDefaultQueueAbsorbsBurstyAssistantAudio(t *testing.T) {
+	if DefaultQueueSize <= 50 {
+		t.Fatalf("DefaultQueueSize = %d, want enough capacity beyond the old 50-frame burst limit", DefaultQueueSize)
+	}
+
+	session := NewSession(SessionOptions{
+		CallID: "call_in_000001",
+		Endpoints: Endpoints{
+			Reader: bytes.NewReader(nil),
+			Writer: &recordingWriter{},
+			Codec:  CodecPCMU,
+		},
+	})
+
+	for i := 0; i < DefaultQueueSize; i++ {
+		payload := bytes.Repeat([]byte{byte(i)}, FrameBytes)
+		if err := session.Enqueue(context.Background(), Frame{Sequence: i, Payload: payload}); err != nil {
+			t.Fatalf("enqueue burst frame %d: %v", i, err)
+		}
+	}
+
+	err := session.Enqueue(context.Background(), Frame{
+		Sequence: DefaultQueueSize,
+		Payload:  bytes.Repeat([]byte{0xff}, FrameBytes),
+	})
+	if !errors.Is(err, ErrQueueFull) {
+		t.Fatalf("enqueue past queue capacity error = %v, want ErrQueueFull", err)
+	}
+}
+
 func TestSessionClearOutboundDropsQueuedFrames(t *testing.T) {
 	writer := &recordingWriter{}
 	pacer := newManualPacer()

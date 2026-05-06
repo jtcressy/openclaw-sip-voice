@@ -189,8 +189,6 @@ type ManagedCall = {
   session?: SipVoiceRuntimeRealtimeSession;
   nextAudioOutSequence: number;
   outboundAudioRemainder: Buffer;
-  outboundAudioQueue: Buffer[];
-  outboundAudioTimer?: ReturnType<typeof setTimeout>;
 };
 
 type PendingOutboundCall = {
@@ -203,8 +201,6 @@ type PendingOutboundCall = {
 const RECENT_RECORD_LIMIT = 50;
 const DEFAULT_TAIL_LIMIT = 20;
 const DEFAULT_MAX_CONCURRENT_CALLS = 1;
-const AUDIO_OUT_FRAME_DURATION_MS = 20;
-const AUDIO_OUT_MAX_QUEUED_FRAMES = 1_000;
 const SENSITIVE_KEY_RE =
   /(sip|sdp|rtp|unifi|gemini|openai|credential|secret|token|password|authorization|apikey|api_key|api-key)/i;
 const SENSITIVE_TEXT_RE =
@@ -434,83 +430,6 @@ export async function createSipVoiceRuntime(
 
   const clearOutboundAudioBuffers = (call: ManagedCall): void => {
     call.outboundAudioRemainder = Buffer.alloc(0);
-    call.outboundAudioQueue = [];
-    if (call.outboundAudioTimer !== undefined) {
-      clearTimeout(call.outboundAudioTimer);
-      call.outboundAudioTimer = undefined;
-    }
-  };
-
-  const scheduleOutboundAudioDrain = (call: ManagedCall): void => {
-    if (call.outboundAudioTimer !== undefined) {
-      return;
-    }
-    call.outboundAudioTimer = setTimeout(() => {
-      call.outboundAudioTimer = undefined;
-      drainOutboundAudioFrame(call);
-    }, AUDIO_OUT_FRAME_DURATION_MS);
-    call.outboundAudioTimer.unref?.();
-  };
-
-  const drainOutboundAudioFrame = (call: ManagedCall): void => {
-    if (calls.get(call.callId) !== call || call.state === "ended") {
-      clearOutboundAudioBuffers(call);
-      return;
-    }
-
-    const frame = call.outboundAudioQueue.shift();
-    if (!frame) {
-      return;
-    }
-
-    try {
-      const command = bridge.sendAudioOut({
-        callId: call.callId,
-        sequence: call.nextAudioOutSequence,
-        payload: frame,
-      });
-      call.nextAudioOutSequence += 1;
-      recordEvent("audio.out", {
-        callId: call.callId,
-        details: {
-          sequence: command.sequence,
-          bytes: frame.byteLength,
-        },
-      });
-    } catch (error) {
-      recordError(error, { callId: call.callId, code: "audio_out_failed" });
-    }
-
-    if (call.outboundAudioQueue.length > 0) {
-      scheduleOutboundAudioDrain(call);
-    }
-  };
-
-  const enqueueOutboundAudioFrames = (call: ManagedCall, frames: Buffer[]): void => {
-    if (frames.length === 0) {
-      return;
-    }
-
-    const availableSlots = AUDIO_OUT_MAX_QUEUED_FRAMES - call.outboundAudioQueue.length;
-    if (availableSlots <= 0) {
-      recordError(new Error("Outbound audio pacer queue is full"), {
-        callId: call.callId,
-        code: "audio_out_queue_full",
-      });
-      return;
-    }
-
-    if (frames.length > availableSlots) {
-      recordError(new Error("Outbound audio pacer queue overflow"), {
-        callId: call.callId,
-        code: "audio_out_queue_full",
-      });
-    }
-
-    call.outboundAudioQueue.push(...frames.slice(0, availableSlots));
-    if (call.outboundAudioTimer === undefined) {
-      drainOutboundAudioFrame(call);
-    }
   };
 
   const sendAudioClear = (
@@ -547,7 +466,21 @@ export async function createSipVoiceRuntime(
 
         try {
           const frames = popOutboundAudioFrames(call, Buffer.from(audio));
-          enqueueOutboundAudioFrames(call, frames);
+          for (const frame of frames) {
+            const command = bridge.sendAudioOut({
+              callId,
+              sequence: call.nextAudioOutSequence,
+              payload: frame,
+            });
+            call.nextAudioOutSequence += 1;
+            recordEvent("audio.out", {
+              callId,
+              details: {
+                sequence: command.sequence,
+                bytes: frame.byteLength,
+              },
+            });
+          }
         } catch (error) {
           recordError(error, { callId, code: "audio_out_failed" });
         }
@@ -792,7 +725,6 @@ export async function createSipVoiceRuntime(
       startedAt: event.sentAt,
       nextAudioOutSequence: 0,
       outboundAudioRemainder: Buffer.alloc(0),
-      outboundAudioQueue: [],
     };
     calls.set(event.callId, call);
 
@@ -843,7 +775,6 @@ export async function createSipVoiceRuntime(
       requestedByCommandId: event.requestedByCommandId,
       nextAudioOutSequence: 0,
       outboundAudioRemainder: Buffer.alloc(0),
-      outboundAudioQueue: [],
     };
     calls.set(event.callId, call);
 

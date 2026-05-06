@@ -8,9 +8,11 @@ import (
 )
 
 const (
-	FrameBytes       = 160
-	FrameDuration    = 20 * time.Millisecond
-	DefaultQueueSize = 50
+	FrameBytes    = 160
+	FrameDuration = 20 * time.Millisecond
+	// DefaultQueueSize absorbs bursty assistant audio while the RTP writer owns
+	// outbound playout cadence. At 20 ms per PCMU frame, this is 10 seconds.
+	DefaultQueueSize = 500
 )
 
 type Codec string
