@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -25,6 +26,30 @@ const bridgeVersion = "0.1.0"
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
+	if len(os.Args) > 1 {
+		if err := runCommand(os.Args[1:]); err != nil {
+			logger.Error("bridge command failed", "error", err)
+			os.Exit(2)
+		}
+		return
+	}
+
+	runBridge(logger)
+}
+
+func runCommand(args []string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("missing subcommand")
+	}
+	switch args[0] {
+	case "healthcheck":
+		return runHealthcheckCommand(args[1:])
+	default:
+		return fmt.Errorf("unsupported subcommand %q", args[0])
+	}
+}
+
+func runBridge(logger *slog.Logger) {
 	cfg, err := config.ParseEnv(os.Environ())
 	if err != nil {
 		logger.Error("invalid bridge configuration", "error", err, "config", cfg.RedactedValues())
